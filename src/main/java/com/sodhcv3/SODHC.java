@@ -81,6 +81,7 @@ public class SODHC extends Application {
     public static void responder(String pergunta, TextArea textArea) {
         pergunta = pergunta.toLowerCase().trim();
 
+    
         if (pergunta.contains("on") || pergunta.contains("iniciar")) {
             sistemaLigado = true;
             simularCarregamento();
@@ -126,8 +127,8 @@ public class SODHC extends Application {
         VBox root = new VBox(10);
         root.setStyle("-fx-padding: 10;");
 
-        TextField textField = new TextField();
-        textField.setPromptText("Digite sua pergunta...");
+        TextField textField = new TextField("Digite on para iniciar");
+        textField.setPromptText("S.O.D.H.C. insert text:");
 
         Button button = new Button("Enviar");
         TextArea textArea = new TextArea();
@@ -148,7 +149,7 @@ public class SODHC extends Application {
 
         root.getChildren().addAll(textField, button, textArea);
 
-        Scene scene = new Scene(root, 600, 400);
+        Scene scene = new Scene(root, 1200, 500);
         primaryStage.setTitle("S.O.D.H.C. - Sistema de Decadência Humana em Centopeia");
         primaryStage.setScene(scene);
         primaryStage.show();
