@@ -6,14 +6,13 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -22,10 +21,12 @@ import java.util.concurrent.CompletableFuture;
 public class SODHC extends Application {
 
     private static boolean sistemaLigado = false; // Flag para verificar se o sistema está ligado
+    private static final String OPENAI_API_KEY = "";
+    private static final String OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 
     // Função para imprimir "café" utilizando os valores ASCII
     public static void imprimirCafe(TextArea textArea) {
-        char[] cafe = {69, 85, 32, 84, 69, 32, 65, 77, 79, 32, 3}; 
+        char[] cafe = {69, 85, 32, 84, 69, 32, 65, 68, 77, 73, 82, 79}; 
         StringBuilder cafeString = new StringBuilder();
         for (char c : cafe) {
             cafeString.append(c);
@@ -36,8 +37,6 @@ public class SODHC extends Application {
     // Função que exibe a saudação com base na hora
     public static void exibirSaudacao(TextArea textArea) {
         Date hora = new Date();
-        String horaStr = new SimpleDateFormat("HH:mm:ss").format(hora);
-        
         int horaInt = Integer.parseInt(new SimpleDateFormat("HH").format(hora));
         String result;
         if (horaInt < 12) {
@@ -51,49 +50,31 @@ public class SODHC extends Application {
         textArea.appendText(result + "\n\n");
     }
 
-    public static class WolframAlphaAPI {
-        private static final String APP_ID = "HVAJX6-W865HGVL3H";
-
-        public static CompletableFuture<String> consultaWolfram(String query) {
-            String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
-            String url = "https://api.wolframalpha.com/v2/query?input=" + encodedQuery + "&appid=" + APP_ID + "&output=json";
-
+    public static class OpenAIAPI {
+        public static CompletableFuture<String> consultaOpenAI(String prompt) {
             return CompletableFuture.supplyAsync(() -> {
                 try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-                    HttpGet request = new HttpGet(url);
+                    HttpPost request = new HttpPost(OPENAI_URL);
+                    request.addHeader("Authorization", "Bearer " + OPENAI_API_KEY);
+                    request.addHeader("Content-Type", "application/json");
+
+                    JSONObject payload = new JSONObject();
+                    payload.put("model", "gpt-3.5-turbo");
+                    payload.put("messages", new JSONObject[]{
+                        new JSONObject().put("role", "user").put("content", prompt)
+                    });
+
+                    request.setEntity(new StringEntity(payload.toString(), StandardCharsets.UTF_8));
                     HttpResponse response = httpClient.execute(request);
                     String jsonResponse = EntityUtils.toString(response.getEntity());
-                    return parseResposta(jsonResponse);
+
+                    JSONObject jsonObject = new JSONObject(jsonResponse);
+                    return jsonObject.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content");
                 } catch (Exception e) {
                     e.printStackTrace();
-                    return "Erro ao consultar a API do Wolfram Alpha. Tente novamente mais tarde.";
+                    return "Erro ao consultar a API da OpenAI. Tente novamente mais tarde.";
                 }
             });
-        }
-
-        private static String parseResposta(String jsonResponse) {
-            JSONObject jsonObject = new JSONObject(jsonResponse);
-            if (!jsonObject.getJSONObject("queryresult").getBoolean("success")) {
-                return "Nenhuma resposta relevante encontrada.";
-            }
-
-            JSONArray pods = jsonObject.getJSONObject("queryresult").optJSONArray("pods");
-            if (pods == null) {
-                return "Nenhuma informação disponível.";
-            }
-
-            StringBuilder resultado = new StringBuilder();
-            for (int i = 0; i < pods.length(); i++) {
-                JSONObject pod = pods.getJSONObject(i);
-                JSONArray subpods = pod.optJSONArray("subpods");
-                if (subpods != null) {
-                    resultado.append(pod.getString("title")).append(": ");
-                    for (int j = 0; j < subpods.length(); j++) {
-                        resultado.append(subpods.getJSONObject(j).optString("plaintext", "Sem resposta")).append("\n");
-                    }
-                }
-            }
-            return resultado.toString().isEmpty() ? "Sem respostas disponíveis." : resultado.toString();
         }
     }
 
@@ -102,7 +83,7 @@ public class SODHC extends Application {
 
         if (pergunta.contains("on") || pergunta.contains("iniciar")) {
             sistemaLigado = true;
-            simularCarregamento(); // Carregamento no terminal
+            simularCarregamento();
             textArea.appendText("Sistema iniciado!\n\n");
             exibirSaudacao(textArea);
         } else if (pergunta.contains("off") || pergunta.contains("desligar")) {
@@ -115,20 +96,16 @@ public class SODHC extends Application {
         } else if (pergunta.contains("café")) {
             textArea.appendText("Pergunta: " + pergunta + "\n");
             imprimirCafe(textArea);
-        } else if (pergunta.contains("wolfram")) {
-            String consulta = pergunta.replace("wolfram", "").trim();
-            WolframAlphaAPI.consultaWolfram(consulta).thenAccept(resposta -> {
-                textArea.appendText("Pergunta: " + consulta + "\nResposta: " + resposta + "\n\n");
+        } else {
+            OpenAIAPI.consultaOpenAI(pergunta).thenAccept(resposta -> {
+                textArea.appendText("Pergunta: "  + "\nResposta: " + resposta + "\n\n");
             }).exceptionally(e -> {
-                textArea.appendText("Erro ao consultar Wolfram Alpha: " + e.getMessage() + "\n");
+                textArea.appendText("Erro ao consultar OpenAI: " + e.getMessage() + "\n");
                 return null;
             });
-        } else {
-            textArea.appendText("Pergunta: " + pergunta + "\nResposta: Desculpe, não entendi a sua pergunta.\n\n");
         }
     }
 
-    // Função para simular carregamento no terminal
     public static void simularCarregamento() {
         String[] animacoes = {".", "..", "...", "...."};
         System.out.print("Iniciando");
@@ -156,15 +133,13 @@ public class SODHC extends Application {
         TextArea textArea = new TextArea();
         textArea.setEditable(false);
         textArea.setWrapText(true);
-        
-        // Ação do botão ao clicar
+
         button.setOnAction(e -> {
             String pergunta = textField.getText();
             responder(pergunta, textArea);
             textField.clear();
         });
-        
-        // Adicionando a ação para pressionar Enter no TextField
+
         textField.setOnAction(e -> {
             String pergunta = textField.getText();
             responder(pergunta, textArea);
