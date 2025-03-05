@@ -159,20 +159,21 @@ public class SODHC extends Application {
         primaryStage.show();
 
         
-        Object javaInterface = new Object() {
-            public void receiveMessage(String message) {
-                Platform.runLater(() -> {
-                    // Processa a mensagem recebida do JavaScript
-                    System.out.println("Mensagem recebida do JavaScript: " + message);
-                });
-            }
-        };
+    //     Object javaInterface = new Object() {
+    //         public void receiveMessage(String message) {
+    //             Platform.runLater(() -> {
+    //                 // Processa a mensagem recebida do JavaScript
+    //                 // System.out.println("Mensagem recebida do JavaScript: " + message);
+    //             });
+    //         }
+    //     };
 
-        // Passar o objeto para o JavaScript para que ele possa chamar os métodos Java
-        webEngine.executeScript("window.javaInterface = " + javaInterface + ";");
+    //     // Passar o objeto para o JavaScript para que ele possa chamar os métodos Java
+    //     webEngine.executeScript("window.javaInterface = " + javaInterface + ";");
+    // }
     }
-
     public static void main(String[] args) {
         launch(args);
     }
 }
+
