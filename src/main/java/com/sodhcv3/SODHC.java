@@ -5,6 +5,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.scene.web.WebView;
+import javafx.scene.web.WebEngine;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -81,7 +83,6 @@ public class SODHC extends Application {
     public static void responder(String pergunta, TextArea textArea) {
         pergunta = pergunta.toLowerCase().trim();
 
-    
         if (pergunta.contains("on") || pergunta.contains("iniciar")) {
             sistemaLigado = true;
             simularCarregamento();
@@ -124,33 +125,15 @@ public class SODHC extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        VBox root = new VBox(10);
-        root.setStyle("-fx-padding: 10;");
+        WebView webView = new WebView();
+        WebEngine webEngine = webView.getEngine();
 
-        TextField textField = new TextField("Digite on para iniciar");
-        textField.setPromptText("S.O.D.H.C. insert text:");
+        
+        webEngine.load(getClass().getResource("/index.html").toExternalForm());
 
-        Button button = new Button("Enviar");
-        TextArea textArea = new TextArea();
-        textArea.setEditable(false);
-        textArea.setWrapText(true);
 
-        button.setOnAction(e -> {
-            String pergunta = textField.getText();
-            responder(pergunta, textArea);
-            textField.clear();
-        });
-
-        textField.setOnAction(e -> {
-            String pergunta = textField.getText();
-            responder(pergunta, textArea);
-            textField.clear();
-        });
-
-        root.getChildren().addAll(textField, button, textArea);
-
-        Scene scene = new Scene(root, 1200, 500);
-        primaryStage.setTitle("S.O.D.H.C. - Sistema de Decadência Humana em Centopeia");
+        Scene scene = new Scene(new VBox(webView), 800, 600);
+        primaryStage.setTitle("S.O.D.H.C. com HTML");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
